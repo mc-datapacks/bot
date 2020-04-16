@@ -11,3 +11,4 @@ serenity = { version = "0.8.3", features = ["cache"] }
 dotenv = "0.15.0"
 log = "0.4.8"
 env_logger = "0.7.1"
+random_color = "0.4.4"
