@@ -21,8 +21,7 @@ fn give_role(context: &mut Context, message: &Message, mut args: Args) -> Comman
 	);
 
 	let user = args.single::<UserId>()?;
-	let role: Result<String, _> = args.iter::<String>().collect();
-	let role = role?;
+	let role = args.rest();
 
 	// Discord really doesn't like empty role
 	if role.is_empty() {
