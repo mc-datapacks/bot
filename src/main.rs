@@ -1,19 +1,19 @@
 use dotenv::dotenv;
 use serenity::framework::standard::macros::group;
 use serenity::framework::standard::StandardFramework;
-use serenity::prelude::{EventHandler};
+use serenity::prelude::EventHandler;
 use serenity::Client;
-use std::env;
 use std::collections::HashMap;
+use std::env;
 
 mod command;
+mod data;
 mod help;
 mod utils;
-mod data;
 
-use help::*;
 use command::*;
 use data::*;
+use help::*;
 
 struct Handler;
 

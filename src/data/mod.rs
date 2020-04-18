@@ -1,6 +1,6 @@
+use serenity::model::prelude::{ChannelId, GuildId};
 use serenity::prelude::TypeMapKey;
 use std::collections::HashMap;
-use serenity::model::prelude::{GuildId, ChannelId};
 
 pub struct VerifyChannel;
 

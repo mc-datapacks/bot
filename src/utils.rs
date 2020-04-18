@@ -1,8 +1,8 @@
-use serenity::framework::standard::macros::check;
-use serenity::prelude::Context;
-use serenity::model::prelude::{Message};
-use serenity::framework::standard::{CheckResult};
 use super::VerifyChannel;
+use serenity::framework::standard::macros::check;
+use serenity::framework::standard::CheckResult;
+use serenity::model::prelude::Message;
+use serenity::prelude::Context;
 
 #[check]
 #[name = "is_in_verify_channel"]

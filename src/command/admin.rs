@@ -1,11 +1,11 @@
-use serenity::model::id::ChannelId;
-use serenity::model::channel::Message;
-use serenity::framework::standard::{CommandResult, Args};
-use serenity::prelude::{Context};
-use serenity::framework::standard::macros::{command};
-use serenity::utils::MessageBuilder;
-use log::{info, debug};
 use crate::VerifyChannel;
+use log::{debug, info};
+use serenity::framework::standard::macros::command;
+use serenity::framework::standard::{Args, CommandResult};
+use serenity::model::channel::Message;
+use serenity::model::id::ChannelId;
+use serenity::prelude::Context;
+use serenity::utils::MessageBuilder;
 
 #[command]
 #[aliases("verify_channel")]
@@ -15,16 +15,27 @@ use crate::VerifyChannel;
 #[num_args(1)]
 #[required_permissions(ADMINISTRATOR)]
 #[only_in(guilds)]
-fn set_verification_channel(context: &mut Context, message: &Message, mut args: Args) -> CommandResult {
-	info!("{user} invoke `{command}`", user = message.author.tag(), command = message.content);
+fn set_verification_channel(
+	context: &mut Context,
+	message: &Message,
+	mut args: Args,
+) -> CommandResult {
+	info!(
+		"{user} invoke `{command}`",
+		user = message.author.tag(),
+		command = message.content
+	);
 
 	let channel = args.single::<ChannelId>()?;
-	
+
 	let mut data = context.data.write();
 	if let Some(verify_channel) = data.get_mut::<VerifyChannel>() {
 		let guild_id = message.guild_id.expect("Guild ID not found");
 
-		debug!("Add {} channel from {} guild to verify channel list", channel, guild_id);
+		debug!(
+			"Add {} channel from {} guild to verify channel list",
+			channel, guild_id
+		);
 		match verify_channel.get_mut(&guild_id) {
 			Some(v) => v.push(channel),
 			None => {
@@ -52,14 +63,18 @@ fn set_verification_channel(context: &mut Context, message: &Message, mut args: 
 #[required_permissions(ADMINISTRATOR)]
 #[only_in(guilds)]
 fn clear_verification_channel(context: &mut Context, message: &Message) -> CommandResult {
-	info!("{user} invoke `{command}`", user = message.author.tag(), command = message.content);
-	
+	info!(
+		"{user} invoke `{command}`",
+		user = message.author.tag(),
+		command = message.content
+	);
+
 	let mut data = context.data.write();
 	if let Some(verify_channel) = data.get_mut::<VerifyChannel>() {
 		let guild_id = message.guild_id.expect("Guild ID not found");
 
 		debug!("Clear verification channels list from {} guild", guild_id);
-		
+
 		verify_channel.remove(&guild_id);
 
 		let response = MessageBuilder::new()
