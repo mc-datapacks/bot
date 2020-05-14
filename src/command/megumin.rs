@@ -26,7 +26,7 @@ fn give_role(context: &mut Context, message: &Message, mut args: Args) -> Comman
 	}
 
 	let guild = message.guild(&context).ok_or(Error::OutsideGuild)?;
-	let guild = guild.write();
+	let guild = guild.read();
 
 	// Can't fucking refactor this because RwLockWriteGuard is private or hidden somewhere I don't know
 	let applied_role = if let Some(role) = guild.role_by_name(&role) {
