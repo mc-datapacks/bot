@@ -1,11 +1,12 @@
 use crate::utils::*;
-use crate::VerifyChannel;
+use crate::{data::Error, VerifyChannel};
 use log::{debug, info};
 use serenity::framework::standard::macros::command;
 use serenity::framework::standard::CommandResult;
-use serenity::model::channel::Message;
+use serenity::model::{id::ChannelId, channel::Message};
 use serenity::prelude::Context;
 use serenity::utils::MessageBuilder;
+use std::collections::HashSet;
 
 #[command]
 #[aliases("verify")]
@@ -15,22 +16,18 @@ use serenity::utils::MessageBuilder;
 #[only_in(guilds)]
 #[checks(is_in_verify_channel)]
 fn request_verification(context: &mut Context, message: &Message) -> CommandResult {
-	info!(
-		"{user} invoke `{command}`",
-		user = message.author.tag(),
-		command = message.content
-	);
+	info!("{user} invoke `{command}`", user = message.author.tag(), command = message.content);
 
 	if message.pin(&context).is_ok() {
 		let response = MessageBuilder::new()
 			.push("Your message has been pinned and will be review by Boomber")
 			.build();
-		message.channel_id.say(&context.http, &response)?;
+		message.channel_id.say(context, &response)?;
 	} else {
 		let response = MessageBuilder::new()
 			.push("We cannot pin your message due to pin limit")
 			.build();
-		message.channel_id.say(&context.http, &response)?;
+		message.channel_id.say(context, &response)?;
 	}
 
 	Ok(())
@@ -42,36 +39,36 @@ fn request_verification(context: &mut Context, message: &Message) -> CommandResu
 #[num_args(0)]
 #[only_in(guilds)]
 fn list_verify_channel(context: &mut Context, message: &Message) -> CommandResult {
-	info!(
-		"{user} invoke `{command}`",
-		user = message.author.tag(),
-		command = message.content
-	);
-	let guild_id = message.guild_id.expect("Guild ID not found");
+	info!("{user} invoke `{command}`", user = message.author.tag(), command = message.content);
+	let guild = message.guild(&context).ok_or(Error::OutsideGuild)?;
+	let guild = guild.read();
+
+	let channels: HashSet<ChannelId> = guild.channels(&context)?.keys().copied().collect();
 
 	let data = context.data.read();
-	let verify_channel = data
-		.get::<VerifyChannel>()
-		.expect("VerifyChannel does not exists");
+	let database = data.get::<VerifyChannel>().ok_or(Error::MissingDatabase)?;
 
-	if let Some(channels) = verify_channel.get(&guild_id) {
-		let mut response = MessageBuilder::new();
-		response.push("Found: ");
+	let channels = database.intersect(&channels);
 
-		for channel in channels {
-			response.channel(channel);
-			response.push(" ");
-		}
-
-		let response = response.build();
-		message.channel_id.say(&context.http, &response)?;
-	} else {
+	if channels.is_empty() {
 		debug!("This guild doesn't have verification channel");
 		let response = MessageBuilder::new()
 			.push("No verification channels found")
 			.build();
 
-		message.channel_id.say(&context.http, &response)?;
+		message.channel_id.say(&context, &response)?;
+	} else {
+		debug!("Found: {:?}", channels);
+		let mut response = MessageBuilder::new();
+		response.push("Found: ");
+
+		channels.iter().for_each(|&channel| {
+			response.channel(channel);
+			response.push(" ");
+		});
+
+		let response = response.build();
+		message.channel_id.say(&context, &response)?;
 	}
 
 	Ok(())

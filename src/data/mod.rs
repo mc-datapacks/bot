@@ -1,9 +1,11 @@
-use serenity::model::prelude::{ChannelId, GuildId};
 use serenity::prelude::TypeMapKey;
-use std::collections::HashMap;
+use crate::database::Database;
+
+mod error;
+pub use error::*;
 
 pub struct VerifyChannel;
 
 impl TypeMapKey for VerifyChannel {
-	type Value = HashMap<GuildId, Vec<ChannelId>>;
+	type Value = Database;
 }
