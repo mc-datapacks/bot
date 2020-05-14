@@ -2,7 +2,7 @@ use crate::utils::*;
 use crate::{data::Error, VerifyChannel};
 use log::{debug, info};
 use serenity::framework::standard::macros::command;
-use serenity::framework::standard::CommandResult;
+use serenity::framework::standard::{Args, CommandResult};
 use serenity::model::{id::ChannelId, channel::Message};
 use serenity::prelude::Context;
 use serenity::utils::MessageBuilder;
@@ -15,8 +15,18 @@ use std::collections::HashSet;
 #[num_args(1)]
 #[only_in(guilds)]
 #[checks(is_in_verify_channel)]
-fn request_verification(context: &mut Context, message: &Message) -> CommandResult {
+fn request_verification(context: &mut Context, message: &Message, mut args: Args) -> CommandResult {
 	info!("{user} invoke `{command}`", user = message.author.tag(), command = message.content);
+
+	let url = args.single::<String>()?;
+	if url.is_empty() {
+		let response = MessageBuilder::new()
+			.push("You forgot your URL, you dummy >///<")
+			.build();
+		message.channel_id.say(context, response)?;
+
+		return Ok(())
+	}
 
 	if message.pin(&context).is_ok() {
 		let response = MessageBuilder::new()
