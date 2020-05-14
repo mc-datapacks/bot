@@ -12,11 +12,14 @@ pub struct Database {
 }
 
 fn prepare_database(path: &Path) -> Result<()> {
-	if let Some(parent) = path.parent() {
-		fs::create_dir_all(parent)?;
+	if !path.exists() {
+		if let Some(parent) = path.parent() {
+			fs::create_dir_all(parent)?;
+		}
+
+		fs::write(path, "[]")?;
 	}
 
-	fs::write(path, "[]")?;
 	Ok(())
 }
 
@@ -52,10 +55,7 @@ impl Database {
 	pub fn update_database(&self) -> Result<()> {
 		debug!("Update database");
 
-		if !self.path.exists() {
-			self.prepare()?;
-		}
-
+		self.prepare()?;
 		let writer = File::create(&self.path)?;
 		serde_json::to_writer(writer, &self.cache)?;
 		Ok(())
