@@ -1,6 +1,6 @@
 use anyhow::Result;
 use serenity::model::id::{ChannelId};
-use std::{collections::HashSet, path::PathBuf};
+use std::{collections::HashSet, path::{Path, PathBuf}};
 use log::{debug, info};
 use std::fs::File;
 use std::fs;
@@ -11,19 +11,26 @@ pub struct Database {
 	cache: HashSet<ChannelId>
 }
 
+fn prepare_database(path: &Path) -> Result<()> {
+	if let Some(parent) = path.parent() {
+		fs::create_dir_all(parent)?;
+	}
+
+	fs::write(path, "[]")?;
+	Ok(())
+}
+
 impl Database {
 	fn prepare(&self) -> Result<()> {
-		if let Some(parent) = self.path.parent() {
-			fs::create_dir_all(parent)?;
-		}
-
-		fs::write(&self.path, "[]")?;
-		Ok(())
+		prepare_database(&self.path)
 	}
 
 	pub fn new(path: impl Into<PathBuf>) -> Result<Self> {
 		info!("Initialize new database");
 		let path = path.into();
+
+		prepare_database(&path)?;
+
 		let reader = File::open(&path)?;
 		let cache = serde_json::from_reader(reader).unwrap_or_default();
 		let result = Self { path, cache };
@@ -49,7 +56,7 @@ impl Database {
 			self.prepare()?;
 		}
 
-		let writer = File::open(&self.path)?;
+		let writer = File::create(&self.path)?;
 		serde_json::to_writer(writer, &self.cache)?;
 		Ok(())
 	}
