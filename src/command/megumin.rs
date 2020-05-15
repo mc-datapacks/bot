@@ -18,15 +18,18 @@ fn give_role(context: &mut Context, message: &Message, mut args: Args) -> Comman
 	info!("{user} invoke `{command}`", user = message.author.tag(), command = message.content);
 
 	let user = args.single::<UserId>()?;
+	info!("Get user id: {}", user);
 	let role = args.rest();
 
 	// Discord really doesn't like empty role
 	if role.is_empty() {
+		info!("Role name is empty");
 		return Err(Error::EmptyRoleName.into());
 	}
 
 	let guild = message.guild(&context).ok_or(Error::OutsideGuild)?;
 	let guild = guild.read();
+	info!("Get guild's read mutex");
 
 	// Can't fucking refactor this because RwLockWriteGuard is private or hidden somewhere I don't know
 	let applied_role = if let Some(role) = guild.role_by_name(&role) {
@@ -34,10 +37,13 @@ fn give_role(context: &mut Context, message: &Message, mut args: Args) -> Comman
 	} else {
 		guild.create_role(&context, |edit| role_creator(edit, role))
 	};
-
 	let applied_role = applied_role?;
+	info!("Get role by name: {}", applied_role.id);
+	
 	let mut member = guild.member(&context, user)?;
-	member.add_role(&context.http, applied_role.id)?;
+	info!("Get member: {}", member.distinct());
+	member.add_role(&context, applied_role.id)?;
+	info!("Applied role to member: {}", member.distinct());
 
 	let response = MessageBuilder::new()
 		.push("Added role '")
@@ -45,7 +51,7 @@ fn give_role(context: &mut Context, message: &Message, mut args: Args) -> Comman
 		.push("' to ")
 		.user(member)
 		.build();
-	message.channel_id.say(&context.http, &response)?;
+	message.channel_id.say(&context, &response)?;
 
 	Ok(())
 }
