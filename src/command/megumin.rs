@@ -1,3 +1,4 @@
+use crate::data::Error;
 use log::info;
 use random_color::RandomColor;
 use serenity::builder::EditRole;
@@ -8,14 +9,17 @@ use serenity::model::prelude::UserId;
 use serenity::model::Permissions;
 use serenity::prelude::Context;
 use serenity::utils::MessageBuilder;
-use crate::data::Error;
 
 #[command]
 #[required_permissions(ADMINISTRATOR)]
 #[min_args(2)]
 #[only_in(guilds)]
 fn give_role(context: &mut Context, message: &Message, mut args: Args) -> CommandResult {
-	info!("{user} invoke `{command}`", user = message.author.tag(), command = message.content);
+	info!(
+		"{user} invoke `{command}`",
+		user = message.author.tag(),
+		command = message.content
+	);
 
 	let user = args.single::<UserId>()?;
 	info!("Get user id: {}", user);
@@ -29,21 +33,26 @@ fn give_role(context: &mut Context, message: &Message, mut args: Args) -> Comman
 
 	let guild = message.guild(&context).ok_or(Error::OutsideGuild)?;
 	let guild = guild.read();
-	info!("Get guild's read mutex");
+	info!("Obtain guild's read mutex");
+	let applied_role = {
 
-	// Can't fucking refactor this because RwLockWriteGuard is private or hidden somewhere I don't know
-	let applied_role = if let Some(role) = guild.role_by_name(&role) {
-		Ok(role.clone())
-	} else {
-		guild.create_role(&context, |edit| role_creator(edit, role))
+		// Can't fucking refactor this because RwLockWriteGuard is private or hidden somewhere I don't know
+		if let Some(role) = guild.role_by_name(&role) {
+			Ok(role.clone())
+		} else {
+			guild.create_role(&context, |edit| role_creator(edit, role))
+		}
 	};
 	let applied_role = applied_role?;
 	info!("Get role by name: {}", applied_role.id);
-	
-	let mut member = guild.member(&context, user)?;
-	info!("Get member: {}", member.distinct());
-	member.add_role(&context, applied_role.id)?;
-	info!("Applied role to member: {}", member.distinct());
+
+	let member = {
+		let mut member = guild.member(&context.http, user)?;
+		info!("Get member: {}", member.distinct());
+		member.add_role(&context, applied_role.id)?;
+		info!("Applied role to member: {}", member.distinct());
+		member
+	};
 
 	let response = MessageBuilder::new()
 		.push("Added role '")
