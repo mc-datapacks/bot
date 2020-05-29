@@ -87,7 +87,7 @@ fn stats(context: &mut Context, message: &Message) -> CommandResult {
 	let guild = guild.read();
 
 	let name = format!("{}'s Server information", guild.name);
-	let members = guild.members.len();
+	let members = guild.member_count;
 	let channels = guild.channels.len();
 	let roles = guild.roles.len();
 	let emojis = guild.emojis.len();
