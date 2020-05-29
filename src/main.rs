@@ -59,5 +59,5 @@ struct Admin;
 
 #[group]
 #[description = "Megumin's command group"]
-#[commands(give_role)]
+#[commands(give_role, stats)]
 struct Megumin;

@@ -77,3 +77,35 @@ fn role_creator<'a>(role: &'a mut EditRole, name: &str) -> &'a mut EditRole {
 fn convert_rgb(r: u32, g: u32, b: u32) -> u64 {
 	(r as u64) << 16 | (g as u64) << 8 | b as u64
 }
+
+#[command]
+#[only_in(guilds)]
+fn stats(context: &mut Context, message: &Message) -> CommandResult {
+	info!("{} invoke `{}`", message.author.tag(), message.content);
+	
+	let guild = message.guild(&context).ok_or(Error::OutsideGuild)?;
+	let guild = guild.read();
+
+	let name = format!("{}'s Server information", guild.name);
+	let members = guild.members.len();
+	let channels = guild.channels.len();
+	let roles = guild.roles.len();
+	let emojis = guild.emojis.len();
+
+	let description = format!(r"
+	This server contains...
+	- {0} members.
+	- {1} channels.
+	- {2} roles.
+	- {3} custom emotes.
+	", members, channels, roles, emojis);
+
+	message.channel_id.send_message(&context.http, |m| {
+		m.embed(|embed| {
+			embed.title(name)
+				.description(description)
+		})
+	})?;
+
+	Ok(())
+}

@@ -10,7 +10,7 @@ pub fn is_in_verify_channel(context: &mut Context, message: &Message) -> CheckRe
 	let data = context.data.read();
 
 	if let Some(database) = data.get::<VerifyChannel>() {
-		if database.exists(&message.channel_id) {
+		if database.exists(message.channel_id) {
 			return CheckResult::Success;
 		}
 	}

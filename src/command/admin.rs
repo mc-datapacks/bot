@@ -47,7 +47,7 @@ fn remove_verification_channel(context: &mut Context, message: &Message, mut arg
 	let database = data.get_mut::<VerifyChannel>().ok_or("hello")?;
 	
 	let channel = args.single::<ChannelId>()?;
-	database.remove_channel(&channel)?;
+	database.remove_channel(channel)?;
 
 	let response = MessageBuilder::new()
 		.push("Removed ")

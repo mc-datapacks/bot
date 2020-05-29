@@ -46,9 +46,9 @@ impl Database {
 		self.update_database()
 	}
 
-	pub fn remove_channel(&mut self, id: &ChannelId) -> Result<()> {
+	pub fn remove_channel(&mut self, id: ChannelId) -> Result<()> {
 		debug!("Removed {} from database", id);
-		self.cache.remove(id);
+		self.cache.remove(&id);
 		self.update_database()
 	}
 
@@ -61,8 +61,8 @@ impl Database {
 		Ok(())
 	}
 
-	pub fn exists(&self, id: &ChannelId) -> bool {
-		self.cache.contains(id)
+	pub fn exists(&self, id: ChannelId) -> bool {
+		self.cache.contains(&id)
 	}
 
 	pub fn intersect<'a>(&'a self, list: &'a HashSet<ChannelId>) -> HashSet<&'a ChannelId> {
