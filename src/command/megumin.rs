@@ -1,111 +1,119 @@
 use crate::data::Error;
+use crate::prelude::*;
+use crate::utils::*;
 use log::info;
-use random_color::RandomColor;
-use serenity::builder::EditRole;
 use serenity::framework::standard::macros::command;
 use serenity::framework::standard::{Args, CommandResult};
-use serenity::model::channel::Message;
-use serenity::model::prelude::UserId;
-use serenity::model::Permissions;
-use serenity::prelude::Context;
-use serenity::utils::MessageBuilder;
 
-#[command]
+#[group]
+#[description = "Vanity command group"]
+#[prefix("megu")]
+#[commands(give_role, stats)]
+pub struct Megumin;
+
+#[command("role")]
+#[description = "Create and give role to the user"]
 #[required_permissions(ADMINISTRATOR)]
 #[min_args(2)]
 #[only_in(guilds)]
 fn give_role(context: &mut Context, message: &Message, mut args: Args) -> CommandResult {
-	info!(
-		"{user} invoke `{command}`",
-		user = message.author.tag(),
-		command = message.content
-	);
+    invoke_command(&message);
 
-	let user = args.single::<UserId>()?;
-	info!("Get user id: {}", user);
-	let role = args.rest();
+    let user = args.single::<UserId>()?;
+    info!("Get user id: {}", user);
+    let role_name = args.rest();
 
-	// Discord really doesn't like empty role
-	if role.is_empty() {
-		info!("Role name is empty");
-		return Err(Error::EmptyRoleName.into());
-	}
+    // Discord really doesn't like empty role
+    if role_name.is_empty() {
+        info!("Role name is empty");
+        return Err(Error::EmptyRoleName.into());
+    }
 
-	let guild = message.guild(&context).ok_or(Error::OutsideGuild)?;
-	let guild = guild.read();
-	info!("Obtain guild's read mutex");
-	let applied_role = {
+    let role = create_role(context, message, role_name)?;
+    let member = apply_role(context, message, user, &role)?;
 
-		// Can't fucking refactor this because RwLockWriteGuard is private or hidden somewhere I don't know
-		if let Some(role) = guild.role_by_name(&role) {
-			Ok(role.clone())
-		} else {
-			guild.create_role(&context, |edit| role_creator(edit, role))
-		}
-	};
-	let applied_role = applied_role?;
-	info!("Get role by name: {}", applied_role.id);
-
-	let member = {
-		let mut member = guild.member(&context.http, user)?;
-		info!("Get member: {}", member.distinct());
-		member.add_role(&context, applied_role.id)?;
-		info!("Applied role to member: {}", member.distinct());
-		member
-	};
-
-	let response = MessageBuilder::new()
-		.push("Added role '")
-		.push(applied_role.name)
-		.push("' to ")
-		.user(member)
-		.build();
-	message.channel_id.say(&context, &response)?;
-
-	Ok(())
+    let response = MessageBuilder::new()
+        .push("Aded role '")
+        .push(role.name)
+        .push("' to ")
+        .user(member)
+        .build();
+    message.channel_id.say(&context, response)?;
+    Ok(())
 }
 
-fn role_creator<'a>(role: &'a mut EditRole, name: &str) -> &'a mut EditRole {
-	let [r, g, b] = RandomColor::new().to_rgb_array();
-	let color = convert_rgb(r, g, b);
+fn create_role(context: &Context, message: &Message, role_name: &str) -> Result<Role, Error> {
+    get_guild(context, message, |guild| {
+        let guild = guild.read();
+        let role_query = guild.role_by_name(role_name);
 
-	role.name(name)
-		.permissions(Permissions::empty())
-		.colour(color)
+        match role_query {
+            Some(role) => Ok(role.clone()),
+            None => guild
+                .create_role(&context.http, |edit| role_creator(edit, role_name))
+                .map_err(|err| err.into()),
+        }
+    })
 }
 
-fn convert_rgb(r: u32, g: u32, b: u32) -> u64 {
-	(r as u64) << 16 | (g as u64) << 8 | b as u64
+pub fn apply_role(
+    context: &Context,
+    message: &Message,
+    user: UserId,
+    role: &Role,
+) -> Result<Member, Error> {
+    get_guild(context, message, |guild| {
+        let guild = guild.read();
+        let mut member = guild.member(&context.http, user)?;
+        member.add_role(&context.http, role)?;
+        Ok(member)
+    })
 }
 
 #[command]
+#[description = "Display server stats"]
 #[only_in(guilds)]
 fn stats(context: &mut Context, message: &Message) -> CommandResult {
-	info!("{} invoke `{}`", message.author.tag(), message.content);
-	
-	let guild = message.guild(&context).ok_or(Error::OutsideGuild)?;
-	let guild = guild.read();
+    invoke_command(&message);
 
-	let name = format!("{}'s Server information", guild.name);
-	let members = guild.member_count;
-	let channels = guild.channels.len();
-	let roles = guild.roles.len();
-	let emojis = guild.emojis.len();
+    let name = server_name(context, message)?;
+    let description = stats_format(context, message)?;
 
-	let description = format!(r"
-	This server contains...
-	- {0} members.
-	- {1} channels.
-	- {2} roles.
-	- {3} custom emotes.
-	", members, channels, roles, emojis);
+    message.channel_id.send_message(&context.http, |message| {
+        message.embed(|embed| embed.title(name).description(description))
+    })?;
 
-	message.channel_id.send_message(&context.http, |m| {
-		m.embed(|embed| {
-			embed.title(name)
-				.description(description)
-		})
-	})?;
+    Ok(())
+}
 
-	Ok(())
+pub fn server_name(context: &Context, message: &Message) -> Result<String, Error> {
+    get_guild(context, message, |guild| {
+        let guild = guild.read();
+        let result = format!("{}'s Server information", guild.name);
+        Ok(result)
+    })
+}
+
+pub fn stats_format(context: &Context, message: &Message) -> Result<String, Error> {
+    get_guild(context, message, |guild| {
+        let guild = guild.read();
+
+        let members = guild.member_count;
+        let channels = guild.channels.len();
+        let roles = guild.roles.len();
+        let emojis = guild.emojis.len();
+
+        let result = format!(
+            "\
+		This server contains...\n\
+		- {0} members.\n\
+		- {1} channels.\n\
+		- {2} roles.\n\
+		- {3} custom emotes.\
+		",
+            members, channels, roles, emojis
+        );
+
+        Ok(result)
+    })
 }

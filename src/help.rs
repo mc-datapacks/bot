@@ -10,12 +10,12 @@ use std::collections::HashSet;
 #[lacking_permissions = "Hide"]
 #[wrong_channel = "Strike"]
 fn help_message(
-	ctx: &mut Context,
-	msg: &Message,
-	args: Args,
-	help_options: &'static HelpOptions,
-	groups: &[&'static CommandGroup],
-	owners: HashSet<UserId>,
+    ctx: &mut Context,
+    msg: &Message,
+    args: Args,
+    help_options: &'static HelpOptions,
+    groups: &[&'static CommandGroup],
+    owners: HashSet<UserId>,
 ) -> CommandResult {
-	help_commands::with_embeds(ctx, msg, args, help_options, groups, owners)
+    help_commands::with_embeds(ctx, msg, args, help_options, groups, owners)
 }
