@@ -33,7 +33,7 @@ fn give_role(context: &mut Context, message: &Message, mut args: Args) -> Comman
     let member = apply_role(context, message, user, &role)?;
 
     let response = MessageBuilder::new()
-        .push("Aded role '")
+        .push("Added role '")
         .push(role.name)
         .push("' to ")
         .user(member)
