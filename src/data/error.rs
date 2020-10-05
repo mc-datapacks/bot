@@ -16,4 +16,13 @@ pub enum Error {
 
     #[error("Unknown channel")]
     UnknownChannel,
+
+    #[error("You don't have that role")]
+    MissingRole,
+
+    #[error("Unknown request")]
+    UnknownRequest,
+
+    #[error("You have already made a role request to this user")]
+    ExistingRequest,
 }

@@ -66,3 +66,44 @@ pub fn role_creator<'a>(role: &'a mut EditRole, name: &str) -> &'a mut EditRole 
 pub fn convert_rgb(r: u32, g: u32, b: u32) -> u64 {
     (r as u64) << 16 | (g as u64) << 8 | b as u64
 }
+
+pub fn role_by_name(name: &str, context: &Context, message: &Message) -> Result<Role, Error> {
+    let guild = message
+        .guild(&context.cache)
+        .ok_or_else(|| Error::OutsideGuild)?;
+    let guild = guild.read();
+    guild
+        .role_by_name(name)
+        .cloned()
+        .ok_or_else(|| Error::MissingRole)
+}
+
+#[macro_export]
+macro_rules! report {
+    ($x:expr =>> $context:expr => $message:expr) => {
+        match $x {
+            Some(v) => v,
+            None => return Ok(()),
+        }
+    };
+    ($x:expr => $context:expr => $message:expr) => {
+        match $x {
+            Ok(v) => v,
+            Err(e) => {
+                bail!(e => $context => $message);
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! bail {
+    ($x:expr => $context:expr => $message:expr) => {
+        let msg = format!("{}", $x);
+        $message.channel_id.say(&$context.http, msg)?;
+        bail!($x);
+    };
+    ($message:expr) => {
+        return Err($message.into());
+    };
+}

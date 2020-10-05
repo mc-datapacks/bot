@@ -8,12 +8,14 @@ mod command;
 mod data;
 mod database;
 mod help;
+mod trading;
 mod utils;
 
 use command::*;
 use data::*;
 use database::Database;
 use help::*;
+use trading::RequestDatabase;
 
 struct Handler;
 
@@ -36,8 +38,11 @@ fn main() {
 
     {
         let database = Database::new("database.db").expect("Unable to create database");
+        let trade = RequestDatabase::new();
+
         let mut data = client.data.write();
         data.insert::<VerifyChannel>(database);
+        data.insert::<RoleRequest>(trade);
     }
 
     if let Err(error) = client.start() {
